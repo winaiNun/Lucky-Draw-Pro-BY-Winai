@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>สร้างไอคอน PWA — Lucky Draw Pro</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Sarabun,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;padding:24px 16px}
+h1{font-size:1.5rem;font-weight:800;color:#fff;margin-bottom:4px}
+.sub{color:#64748b;font-size:.85rem;margin-bottom:24px}
+.wrap{max-width:900px;margin:0 auto}
+.card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:20px;margin-bottom:16px}
+.card-title{font-size:.72rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+/* Upload */
+#dropzone{border:2px dashed #475569;border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s}
+#dropzone:hover,#dropzone.over{border-color:#7c3aed;background:rgba(124,58,237,.06)}
+#dropzone .ico{font-size:2.8rem;margin-bottom:8px}
+#dropzone p{color:#64748b;font-size:.9rem}
+#dropzone p small{font-size:.75rem;display:block;margin-top:4px}
+/* Main layout */
+#workArea{display:none;gap:20px}
+#workArea.show{display:flex;flex-wrap:wrap}
+/* Crop panel */
+#cropPanel{flex:1;min-width:300px}
+#imgWrap{position:relative;display:inline-block;cursor:crosshair;user-select:none;line-height:0}
+#imgPreview{display:block;max-width:100%;max-height:480px;width:auto;height:auto}
+#cropBox{position:absolute;border:2px solid #a78bfa;box-shadow:0 0 0 9999px rgba(0,0,0,.55);cursor:move;touch-action:none}
+.handle{position:absolute;width:14px;height:14px;background:#7c3aed;border:2px solid #fff;border-radius:3px}
+.handle.tl{top:-7px;left:-7px;cursor:nw-resize}
+.handle.tr{top:-7px;right:-7px;cursor:ne-resize}
+.handle.bl{bottom:-7px;left:-7px;cursor:sw-resize}
+.handle.br{bottom:-7px;right:-7px;cursor:se-resize}
+/* Right panel */
+#rightPanel{width:260px;flex-shrink:0}
+/* Mini preview */
+#miniPreviewWrap{background:#0f172a;border-radius:10px;padding:12px;text-align:center;margin-bottom:16px}
+#miniPreview{border-radius:18px;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.mini-label{font-size:.72rem;color:#64748b;margin-top:8px}
+/* Controls */
+.ctrl-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.ctrl-row label{font-size:.8rem;color:#94a3b8}
+input[type=range]{width:130px;accent-color:#7c3aed}
+input[type=number]{width:72px;background:#0f172a;border:1px solid #475569;border-radius:7px;padding:5px 8px;color:#fff;font-size:.82rem}
+input[type=color]{width:42px;height:34px;border:1px solid #475569;border-radius:7px;cursor:pointer;padding:2px;background:#0f172a}
+select{background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:7px;padding:6px 10px;font-size:.82rem;width:100%}
+/* Buttons */
+.btn-gen{display:block;width:100%;padding:12px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;font-weight:700;font-size:1rem;border:none;border-radius:10px;cursor:pointer;margin-bottom:10px;transition:opacity .2s}
+.btn-gen:hover{opacity:.88}
+.btn-gen:disabled{opacity:.4;cursor:not-allowed}
+/* Output */
+#outputGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.out-item{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:10px;text-align:center}
+.out-item canvas{border-radius:8px;max-width:100%}
+.out-size{font-size:.68rem;color:#64748b;margin-bottom:6px;font-weight:700}
+.out-name{font-size:.7rem;color:#94a3b8;margin:5px 0}
+.dl-btn{display:block;width:100%;padding:6px;background:#1e293b;border:1px solid #475569;color:#94a3b8;border-radius:7px;font-size:.75rem;cursor:pointer;transition:all .2s}
+.dl-btn:hover{background:#7c3aed;border-color:#7c3aed;color:#fff}
+.btn-all{display:block;width:100%;padding:13px;background:#059669;color:#fff;font-weight:800;font-size:1rem;border:none;border-radius:10px;cursor:pointer;margin-top:14px;transition:opacity .2s}
+.btn-all:hover{opacity:.88}
+.btn-all:disabled{opacity:.4;cursor:not-allowed}
+/* Tips */
+.tip{background:#1e3a5f;border:1px solid #1d4ed8;border-radius:8px;padding:10px 13px;font-size:.77rem;color:#93c5fd;line-height:1.6;margin-top:12px}
+.step-list{counter-reset:steps;padding:0}
+.step-list li{counter-increment:steps;padding:6px 0 6px 28px;position:relative;font-size:.82rem;color:#94a3b8;border-bottom:1px solid #1e293b}
+.step-list li:last-child{border-bottom:none}
+.step-list li::before{content:counter(steps);position:absolute;left:0;top:6px;background:#7c3aed;color:#fff;width:18px;height:18px;border-radius:50%;font-size:.68rem;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;line-height:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎨 สร้างไอคอน PWA</h1>
+  <p class="sub">อัปโหลดโลโก้ → crop → ดาวน์โหลดทุกขนาดพร้อมกัน</p>
+
+  <!-- How-to -->
+  <div class="card">
+    <div class="card-title">วิธีใช้งาน</div>
+    <ol class="step-list">
+      <li>อัปโหลดภาพโลโก้ (PNG/JPG แนะนำ 1000px ขึ้นไป)</li>
+      <li>ลากกรอบสีม่วงเพื่อเลือกพื้นที่ไอคอน — ลาก <strong>มุม</strong> เพื่อปรับขนาด, ลาก <strong>กลาง</strong> เพื่อย้าย</li>
+      <li>ปรับความโค้งมุม ดูตัวอย่าง live ทางขวา</li>
+      <li>กด <strong>"สร้างไอคอน"</strong> แล้ว <strong>"ดาวน์โหลดทั้งหมด"</strong></li>
+      <li>นำไฟล์ทั้ง 4 ไปวางใน <code style="color:#a78bfa">d:\NuxtJSproject\public\</code></li>
+    </ol>
+  </div>
+
+  <!-- Upload -->
+  <div class="card" id="uploadCard">
+    <div class="card-title">อัปโหลดโลโก้</div>
+    <div id="dropzone" onclick="fileIn.click()">
+      <div class="ico">🖼️</div>
+      <p>คลิกหรือลากภาพมาวางที่นี่</p>
+      <p><small>PNG, JPG, WEBP, SVG — แนะนำ square 512px ขึ้นไป</small></p>
+    </div>
+    <input type="file" id="fileIn" accept="image/*" style="display:none">
+  </div>
+
+  <!-- Work area -->
+  <div id="workArea">
+    <!-- Crop panel -->
+    <div id="cropPanel" class="card">
+      <div class="card-title">ลากกรอบเพื่อ crop ❶ ย้าย &nbsp; ❷ ลากมุมเพื่อปรับขนาด</div>
+      <div id="imgWrap">
+        <img id="imgPreview" alt="">
+        <div id="cropBox">
+          <div class="handle tl" data-h="tl"></div>
+          <div class="handle tr" data-h="tr"></div>
+          <div class="handle bl" data-h="bl"></div>
+          <div class="handle br" data-h="br"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel -->
+    <div id="rightPanel">
+      <!-- Mini preview -->
+      <div class="card">
+        <div class="card-title">ตัวอย่างไอคอน</div>
+        <div id="miniPreviewWrap">
+          <canvas id="miniPreview" width="160" height="160"></canvas>
+          <p class="mini-label">Live preview • 160px</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="ctrl-row">
+          <label>มุมโค้ง (%)</label>
+          <input type="range" id="radiusRange" min="0" max="50" value="22">
+          <input type="number" id="radiusNum" min="0" max="50" value="22" style="width:52px">
+        </div>
+
+        <button class="btn-gen" id="btnGen">⚙️ สร้างไอคอน</button>
+      </div>
+
+      <!-- Output -->
+      <div class="card">
+        <div class="card-title">ผลลัพธ์ (4 ไฟล์)</div>
+        <div id="outputGrid">
+          <div class="out-item"><div class="out-size">512×512</div><canvas id="cv512" width="512" height="512"></canvas><div class="out-name">pwa-512x512.png</div><button class="dl-btn" onclick="dlOne('cv512','pwa-512x512.png')">⬇️ ดาวน์โหลด</button></div>
+          <div class="out-item"><div class="out-size">192×192</div><canvas id="cv192" width="192" height="192"></canvas><div class="out-name">pwa-192x192.png</div><button class="dl-btn" onclick="dlOne('cv192','pwa-192x192.png')">⬇️ ดาวน์โหลด</button></div>
+          <div class="out-item"><div class="out-size">180×180</div><canvas id="cv180" width="180" height="180"></canvas><div class="out-name">apple-touch-icon.png</div><button class="dl-btn" onclick="dlOne('cv180','apple-touch-icon.png')">⬇️ ดาวน์โหลด</button></div>
+          <div class="out-item"><div class="out-size">32×32</div><canvas id="cv32" width="32" height="32"></canvas><div class="out-name">favicon-32.png</div><button class="dl-btn" onclick="dlOne('cv32','favicon-32.png')">⬇️ ดาวน์โหลด</button></div>
+        </div>
+        <button class="btn-all" id="btnAll" disabled onclick="dlAll()">⬇️ ดาวน์โหลดทั้งหมด (4 ไฟล์)</button>
+        <div class="tip">วางไฟล์ที่ได้ใน <strong>d:\NuxtJSproject\public\</strong> แทนที่ไฟล์เดิม แล้วรีสตาร์ท dev server</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────
+let imgEl     = document.getElementById('imgPreview')
+let cropBox   = document.getElementById('cropBox')
+let miniCv    = document.getElementById('miniPreview')
+let drag      = null   // null | 'move' | 'tl'|'tr'|'bl'|'br'
+let startX, startY, startCrop
+
+// crop in display pixels (relative to imgWrap)
+let crop = { x:0, y:0, sz:0 }
+
+// ── Upload ────────────────────────────────────────────────────────────────
+const dz = document.getElementById('dropzone')
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over') })
+dz.addEventListener('dragleave', () => dz.classList.remove('over'))
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); loadFile(e.dataTransfer.files[0]) })
+document.getElementById('fileIn').addEventListener('change', e => loadFile(e.target.files[0]))
+
+function loadFile(f) {
+  if (!f || !f.type.startsWith('image/')) return
+  const url = URL.createObjectURL(f)
+  imgEl.onload = () => {
+    document.getElementById('workArea').classList.add('show')
+    // Init crop box centered, 75% of shorter side
+    const W = imgEl.offsetWidth, H = imgEl.offsetHeight
+    const sz = Math.round(Math.min(W, H) * 0.75)
+    crop = { x: Math.round((W-sz)/2), y: Math.round((H-sz)/2), sz }
+    applyCrop()
+    updateMini()
+  }
+  imgEl.src = url
+}
+
+// ── Crop box apply ────────────────────────────────────────────────────────
+function applyCrop() {
+  cropBox.style.left   = crop.x + 'px'
+  cropBox.style.top    = crop.y + 'px'
+  cropBox.style.width  = crop.sz + 'px'
+  cropBox.style.height = crop.sz + 'px'
+}
+
+function clampCrop() {
+  const W = imgEl.offsetWidth, H = imgEl.offsetHeight
+  const minSz = 30
+  crop.sz = Math.max(minSz, Math.min(crop.sz, W, H))
+  crop.x  = Math.max(0, Math.min(crop.x, W - crop.sz))
+  crop.y  = Math.max(0, Math.min(crop.y, H - crop.sz))
+}
+
+// ── Mouse / Touch drag ────────────────────────────────────────────────────
+const imgWrap = document.getElementById('imgWrap')
+
+function getPos(e) {
+  const r = imgWrap.getBoundingClientRect()
+  const src = e.touches ? e.touches[0] : e
+  return { x: src.clientX - r.left, y: src.clientY - r.top }
+}
+
+function onDown(e, handle) {
+  e.preventDefault()
+  drag = handle
+  const p = getPos(e)
+  startX = p.x; startY = p.y
+  startCrop = { ...crop }
+}
+
+cropBox.addEventListener('mousedown',  e => { if (!e.target.dataset.h) onDown(e,'move') })
+cropBox.addEventListener('touchstart', e => { if (!e.target.dataset.h) onDown(e,'move') }, {passive:false})
+cropBox.querySelectorAll('.handle').forEach(h => {
+  h.addEventListener('mousedown',  e => { e.stopPropagation(); onDown(e, h.dataset.h) })
+  h.addEventListener('touchstart', e => { e.stopPropagation(); onDown(e, h.dataset.h) }, {passive:false})
+})
+
+function onMove(e) {
+  if (!drag) return
+  e.preventDefault()
+  const p = getPos(e)
+  const dx = p.x - startX, dy = p.y - startY
+  const sc = startCrop
+
+  if (drag === 'move') {
+    crop.x = sc.x + dx
+    crop.y = sc.y + dy
+
+  } else if (drag === 'br') {
+    const d = Math.max(dx, dy)
+    crop.sz = Math.max(30, sc.sz + d)
+
+  } else if (drag === 'bl') {
+    const d = Math.max(-dx, dy)
+    const newSz = Math.max(30, sc.sz + d)
+    crop.x  = sc.x + sc.sz - newSz
+    crop.sz = newSz
+
+  } else if (drag === 'tr') {
+    const d = Math.max(dx, -dy)
+    const newSz = Math.max(30, sc.sz + d)
+    crop.y  = sc.y + sc.sz - newSz
+    crop.sz = newSz
+
+  } else if (drag === 'tl') {
+    const d = Math.max(-dx, -dy)
+    const newSz = Math.max(30, sc.sz + d)
+    crop.x  = sc.x + sc.sz - newSz
+    crop.y  = sc.y + sc.sz - newSz
+    crop.sz = newSz
+  }
+
+  clampCrop()
+  applyCrop()
+  updateMini()
+}
+
+function onUp() { drag = null }
+
+window.addEventListener('mousemove', onMove)
+window.addEventListener('touchmove', onMove, { passive: false })
+window.addEventListener('mouseup', onUp)
+window.addEventListener('touchend', onUp)
+
+// ── Radius controls ───────────────────────────────────────────────────────
+const rRange = document.getElementById('radiusRange')
+const rNum   = document.getElementById('radiusNum')
+rRange.addEventListener('input', () => { rNum.value = rRange.value; updateMini() })
+rNum.addEventListener('input',   () => { rRange.value = rNum.value; updateMini() })
+
+function getRadius(size) {
+  return Math.round(size * parseInt(rRange.value) / 100)
+}
+
+// ── Draw icon to canvas ───────────────────────────────────────────────────
+function drawToCanvas(cv, size) {
+  const ctx = cv.getContext('2d')
+  const r   = getRadius(size)
+  const scX = imgEl.naturalWidth  / imgEl.offsetWidth
+  const scY = imgEl.naturalHeight / imgEl.offsetHeight
+  const sx  = crop.x * scX
+  const sy  = crop.y * scY
+  const sw  = crop.sz * scX
+  const sh  = crop.sz * scY
+
+  ctx.clearRect(0, 0, size, size)
+
+  // Rounded clip path
+  if (r > 0) {
+    ctx.beginPath()
+    ctx.moveTo(r,0); ctx.lineTo(size-r,0)
+    ctx.arcTo(size,0,size,r,r)
+    ctx.lineTo(size,size-r)
+    ctx.arcTo(size,size,size-r,size,r)
+    ctx.lineTo(r,size)
+    ctx.arcTo(0,size,0,size-r,r)
+    ctx.lineTo(0,r)
+    ctx.arcTo(0,0,r,0,r)
+    ctx.closePath()
+    ctx.clip()
+  }
+
+  ctx.drawImage(imgEl, sx, sy, sw, sh, 0, 0, size, size)
+}
+
+// ── Mini preview ──────────────────────────────────────────────────────────
+function updateMini() {
+  if (!imgEl.naturalWidth) return
+  drawToCanvas(miniCv, 160)
+}
+
+// ── Generate all ──────────────────────────────────────────────────────────
+document.getElementById('btnGen').addEventListener('click', () => {
+  ;[512, 192, 180, 32].forEach(sz => {
+    const cv = document.getElementById('cv' + sz)
+    if (cv) drawToCanvas(cv, sz)
+  })
+  document.getElementById('btnAll').disabled = false
+})
+
+// ── Download helpers ──────────────────────────────────────────────────────
+function dlOne(cvId, name) {
+  const cv = document.getElementById(cvId)
+  const a  = document.createElement('a')
+  a.download = name
+  a.href     = cv.toDataURL('image/png')
+  a.click()
+}
+
+function dlAll() {
+  const files = [
+    ['cv512','pwa-512x512.png'],
+    ['cv192','pwa-192x192.png'],
+    ['cv180','apple-touch-icon.png'],
+    ['cv32', 'favicon-32.png'],
+  ]
+  files.forEach(([id, name], i) => {
+    setTimeout(() => dlOne(id, name), i * 250)
+  })
+}
+</script>
+</body>
+</html>
