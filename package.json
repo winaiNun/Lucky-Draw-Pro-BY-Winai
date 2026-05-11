@@ -1,0 +1,21 @@
+{
+  "name": "student-randomizer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@pinia/nuxt": "^0.5.1",
+    "pinia": "^2.1.7"
+  },
+  "devDependencies": {
+    "@nuxtjs/tailwindcss": "^6.10.4",
+    "@vite-pwa/nuxt": "^0.4.0",
+    "nuxt": "^3.10.0"
+  }
+}

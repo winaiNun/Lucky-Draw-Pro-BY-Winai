@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head><title>Generate PWA Icons</title></head>
+<body>
+<p>Open this file in a browser. Click buttons to download PWA icons.</p>
+<button onclick="generate(192)">Download 192x192</button>
+<button onclick="generate(512)">Download 512x512</button>
+<script>
+function generate(size) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,size,size);
+  grad.addColorStop(0, '#7c3aed');
+  grad.addColorStop(1, '#2563eb');
+  ctx.fillStyle = grad;
+  const r = size * 0.2;
+  ctx.beginPath();
+  ctx.moveTo(r, 0); ctx.lineTo(size-r, 0);
+  ctx.arcTo(size,0,size,r,r); ctx.lineTo(size,size-r);
+  ctx.arcTo(size,size,size-r,size,r); ctx.lineTo(r,size);
+  ctx.arcTo(0,size,0,size-r,r); ctx.lineTo(0,r);
+  ctx.arcTo(0,0,r,0,r); ctx.closePath();
+  ctx.fill();
+  ctx.font = `${size*0.55}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🎲', size/2, size/2 + size*0.03);
+  const a = document.createElement('a');
+  a.download = `pwa-${size}x${size}.png`;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+</script>
+</body>
+</html>
